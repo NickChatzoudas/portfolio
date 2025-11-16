@@ -227,7 +227,9 @@ export default function Model({
         (out.material as MeshBasicMaterial).dispose();
       }
       canvas.style.cursor = 'default';
-      raycaster.dispose?.();
+      if (typeof (raycaster as any).dispose === 'function') {
+        (raycaster as any).dispose();
+      }
     };
   }, [model, gl, camera]);
   // --- end hover/click behavior ---
