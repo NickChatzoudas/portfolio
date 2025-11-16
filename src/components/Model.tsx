@@ -1,7 +1,7 @@
-import { Html, Environment, OrbitControls, useGLTF, useTexture, useProgress } from '@react-three/drei';
+import { Html, Environment, OrbitControls, useGLTF, useProgress } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Vector3, Mesh, MeshStandardMaterial } from 'three';
+import { useCallback, useEffect, useRef } from 'react';
+import { Vector3, Mesh, Raycaster, Vector2, MeshBasicMaterial, BackSide } from 'three';
 import gsap from 'gsap';
 
 export default function Model({
@@ -16,34 +16,14 @@ export default function Model({
   onIframeLoaded?: () => void;
 }) {
   const model = useGLTF('main.glb');
-  const texture = useTexture('bake.png');
   const screen = model.scene.getObjectByName('Screen');
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
 
   // report loading progress from drei hook (works inside <Canvas>)
   const { progress } = useProgress();
   useEffect(() => {
     onProgress?.(Math.round(progress));
   }, [progress, onProgress]);
-
-  useMemo(() => {
-    model.scene.traverse((child) => {
-      if ((child as Mesh).isMesh) {
-        const mesh = child as Mesh;
-
-        if (mesh.geometry.attributes['BakedUV']) {
-          mesh.geometry.setAttribute(
-            'uv2',
-            mesh.geometry.attributes['BakedUV']
-          );
-
-          mesh.material = new MeshStandardMaterial({
-            map: texture,
-          });
-        }
-      }
-    });
-  }, [model, texture]);
 
   const handleCameraReset = useCallback(() => {
     const close = camera.position.distanceTo(new Vector3(0, 0, 2)) < 0.01;
@@ -106,8 +86,6 @@ export default function Model({
       }
       //console.log("Key pressed:", e.key, "Looking for:", keyName);
       animateButtonPress(keyName);
-
-
     };
 
     window.addEventListener("keydown", handleKeyPress);
@@ -127,6 +105,132 @@ export default function Model({
       onIframeMounted?.();
     }
   }, [screen, onIframeMounted]);
+
+  // --- Hover / Click behavior for "Sticker_github", "Sticker_linkedin", "Sticker_mail" ---
+  useEffect(() => {
+    if (!model || !gl || !camera) return;
+
+    const canvas = gl.domElement;
+    const raycaster = new Raycaster();
+    const pointer = new Vector2();
+
+    const stickerNames = ['Sticker_github', 'Sticker_linkedin', 'Sticker_mail'];
+    const urlMap: Record<string, string> = {
+      Sticker_github: 'https://github.com/Nikos-Chatzoudas',
+      Sticker_linkedin: 'https://www.linkedin.com/in/nick-chatzoudas/',
+      Sticker_mail: 'mailto:nikoschatzoudas@gmail.com',
+    };
+
+    const stickerObjs: Mesh[] = [];
+    const outlines: Mesh[] = [];
+
+    for (const name of stickerNames) {
+      const obj = model.scene.getObjectByName(name) as Mesh | undefined;
+      if (obj && obj.isMesh) {
+        stickerObjs.push(obj);
+
+        // each outline needs its own material instance to animate opacity independently
+        const mat = new MeshBasicMaterial({ color: 0xf5f2d7, side: BackSide, transparent: true, opacity: 0 });
+        const outline = new Mesh(obj.geometry, mat);
+        outline.scale.set(1.05, 1.05, 1.05);
+        outline.visible = false;
+        obj.add(outline);
+        outlines.push(outline);
+      }
+    }
+
+    if (stickerObjs.length === 0) {
+      return () => { };
+    }
+
+    const setPointerFromEvent = (e: PointerEvent | MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    };
+
+    const findStickerRootName = (obj: any) => {
+      let cur: any = obj;
+      while (cur) {
+        if (stickerNames.includes(cur.name)) return cur.name;
+        cur = cur.parent;
+      }
+      return null;
+    };
+
+    const showOutline = (outline: Mesh) => {
+      outline.visible = true;
+      gsap.killTweensOf(outline.material);
+      gsap.to(outline.material as any, { opacity: 1, duration: 0.0, ease: 'power2.out' });
+    };
+
+    const hideOutline = (outline: Mesh) => {
+      gsap.killTweensOf(outline.material);
+      gsap.to(outline.material as any, {
+        opacity: 0,
+        duration: 0,
+        ease: 'power2.in',
+        onComplete: () => {
+          outline.visible = false;
+        }
+      });
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      setPointerFromEvent(e);
+      raycaster.setFromCamera(pointer, camera);
+      const intersects = raycaster.intersectObjects(stickerObjs, true);
+      if (intersects.length > 0) {
+        const hitName = findStickerRootName(intersects[0].object);
+        canvas.style.cursor = 'pointer';
+        // animate outlines: show the hit one, hide others
+        for (let i = 0; i < stickerObjs.length; i++) {
+          const s = stickerObjs[i];
+          const out = outlines[i];
+          if (s.name === hitName) {
+            showOutline(out);
+          } else {
+            if ((out.material as any).opacity > 0) hideOutline(out);
+          }
+        }
+      } else {
+        canvas.style.cursor = 'default';
+        // hide all
+        for (const out of outlines) {
+          if ((out.material as any).opacity > 0) hideOutline(out);
+        }
+      }
+    };
+
+    const onClick = (e: MouseEvent) => {
+      setPointerFromEvent(e);
+      raycaster.setFromCamera(pointer, camera);
+      const intersects = raycaster.intersectObjects(stickerObjs, true);
+      if (intersects.length > 0) {
+        const hitName = findStickerRootName(intersects[0].object);
+        const url = hitName ? urlMap[hitName] : undefined;
+        if (url) {
+          window.open(url, '_blank');
+        }
+      }
+    };
+
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('click', onClick);
+
+    return () => {
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('click', onClick);
+      for (const out of outlines) {
+        out.removeFromParent();
+        // dispose material
+        (out.material as MeshBasicMaterial).dispose();
+      }
+      canvas.style.cursor = 'default';
+      raycaster.dispose?.();
+    };
+  }, [model, gl, camera]);
+  // --- end hover/click behavior ---
 
   return (
     <>
