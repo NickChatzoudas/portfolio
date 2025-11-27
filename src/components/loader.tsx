@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "98.css";
 
 export default function Loader({ progress }: { progress: number }) {
@@ -21,10 +21,17 @@ export default function Loader({ progress }: { progress: number }) {
         "Summoning extra bandwidth through dark magic",
     ];
 
-    const message = React.useMemo(
-        () => messages[Math.floor(Math.random() * messages.length)],
-        []
-    );
+    const getRandomMessage = () => messages[Math.floor(Math.random() * messages.length)];
+
+    const [message, setMessage] = useState(getRandomMessage());
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setMessage(getRandomMessage());
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     return (
         <div style={overlayStyle}>
