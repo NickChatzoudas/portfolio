@@ -80,6 +80,12 @@ export default function Model({
   // Key press listener
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+
+      const audio = new Audio('/SoundEffects/keyboard-click.mp3');
+      audio.volume = 0.05;
+      audio.play().catch((err) => console.warn('Audio play failed', err));
+
       let keyName = `key_${e.key.toLowerCase()}`;
       if (keyName == "key_ ") {
         keyName = "key_space";
@@ -203,6 +209,11 @@ export default function Model({
     };
 
     const onClick = (e: MouseEvent) => {
+
+      const audio = new Audio('/SoundEffects/mouse-click.mp3');
+      audio.volume = 0.02;
+      audio.play().catch((err) => console.warn('Audio play failed', err));
+
       setPointerFromEvent(e);
       raycaster.setFromCamera(pointer, camera);
       const intersects = raycaster.intersectObjects(stickerObjs, true);
@@ -215,15 +226,23 @@ export default function Model({
       }
     };
 
+    const onContextMenu = (e: MouseEvent) => {
+      const audio = new Audio('/SoundEffects/mouse-click.mp3');
+      audio.volume = 0.1;
+      audio.play().catch((err) => console.warn('Audio play failed', err));
+    };
+
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('click', onClick);
+    canvas.addEventListener('contextmenu', onContextMenu);
 
     return () => {
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('click', onClick);
+      canvas.removeEventListener('contextmenu', onContextMenu);
       for (const out of outlines) {
         out.removeFromParent();
-        // dispose material
+
         (out.material as MeshBasicMaterial).dispose();
       }
       canvas.style.cursor = 'default';
