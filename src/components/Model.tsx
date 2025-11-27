@@ -104,6 +104,22 @@ export default function Model({
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const iframeMountedCalled = useRef(false);
 
+  // Play sound when clicking the iframe (window blur + activeElement check)
+  useEffect(() => {
+    const handleBlur = () => {
+      if (document.activeElement === iframeRef.current) {
+        const audio = new Audio('/SoundEffects/mouse-click.mp3');
+        audio.volume = 0.03;
+        audio.play().catch((err) => console.warn('Audio play failed', err));
+      }
+    };
+
+    window.addEventListener('blur', handleBlur);
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, []);
+
   // notify that iframe is mounted (start of iframe load)
   useEffect(() => {
     if (screen && iframeRef.current && !iframeMountedCalled.current) {
@@ -211,7 +227,7 @@ export default function Model({
     const onClick = (e: MouseEvent) => {
 
       const audio = new Audio('/SoundEffects/mouse-click.mp3');
-      audio.volume = 0.02;
+      audio.volume = 0.03;
       audio.play().catch((err) => console.warn('Audio play failed', err));
 
       setPointerFromEvent(e);
@@ -228,7 +244,7 @@ export default function Model({
 
     const onContextMenu = () => {
       const audio = new Audio('/SoundEffects/mouse-click.mp3');
-      audio.volume = 0.1;
+      audio.volume = 0.03;
       audio.play().catch((err) => console.warn('Audio play failed', err));
     };
 
