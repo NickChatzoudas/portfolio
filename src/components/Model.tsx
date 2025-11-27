@@ -226,7 +226,7 @@ export default function Model({
       }
     };
 
-    const onContextMenu = (e: MouseEvent) => {
+    const onContextMenu = () => {
       const audio = new Audio('/SoundEffects/mouse-click.mp3');
       audio.volume = 0.1;
       audio.play().catch((err) => console.warn('Audio play failed', err));
