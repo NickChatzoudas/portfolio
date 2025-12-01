@@ -248,10 +248,6 @@ export default function Model({
       raycaster.setFromCamera(pointer, camera);
       const intersects = raycaster.intersectObjects(stickerObjs, true);
       if (intersects.length > 0) {
-        const audio = new Audio('/SoundEffects/mouse-click.mp3');
-        audio.volume = 0.03;
-        audio.play().catch((err) => console.warn('Audio play failed', err));
-
         const hitName = findStickerRootName(intersects[0].object);
         const url = hitName ? urlMap[hitName] : undefined;
         if (url) {
@@ -265,9 +261,7 @@ export default function Model({
       raycaster.setFromCamera(pointer, camera);
       const intersects = raycaster.intersectObjects(stickerObjs, true);
       if (intersects.length > 0) {
-        const audio = new Audio('/SoundEffects/mouse-click.mp3');
-        audio.volume = 0.03;
-        audio.play().catch((err) => console.warn('Audio play failed', err));
+        
       }
     };
 
