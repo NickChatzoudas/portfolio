@@ -94,10 +94,29 @@ export default function Model({
       animateButtonPress(keyName);
     };
 
+    // Listen for keyboard events on both window and iframe messages
     window.addEventListener("keydown", handleKeyPress);
+
+    const handleMessage = (e: MessageEvent) => {
+      // Check if message is 'keydown' from the iframe
+      if (e.data?.type === 'keydown' && e.source === iframeRef.current?.contentWindow) {
+        const audio = new Audio('/SoundEffects/keyboard-click.mp3');
+        audio.volume = 0.05;
+        audio.play().catch((err) => console.warn('Audio play failed', err));
+
+        let keyName = `key_${e.data.key.toLowerCase()}`;
+        if (keyName == "key_ ") {
+          keyName = "key_space";
+        }
+        animateButtonPress(keyName);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
 
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
+      window.removeEventListener('message', handleMessage);
     };
   }, [animateButtonPress]);
 
@@ -273,10 +292,10 @@ export default function Model({
   }, [model, gl, camera]);
 
 
-  // Play sound when clicking inside the iframe
+
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
-      // Check if message is 'click' from the iframe
+
       if (e.data === 'click' && e.source === iframeRef.current?.contentWindow) {
         const audio = new Audio('/SoundEffects/mouse-click.mp3');
         audio.volume = 0.03;
