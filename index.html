@@ -20,13 +20,37 @@
           "/favicon/10.png",
         ];
         let i = 0;
-        setInterval(() => {
+        let interval;
+
+        const updateIcon = () => {
           const link = document.getElementById("favicon");
           if (link) {
             link.href = frames[i];
             i = (i + 1) % frames.length;
           }
-        }, 250);
+        };
+
+        const start = () => {
+          if (!interval) interval = setInterval(updateIcon, 250);
+        };
+
+        const stop = () => {
+          clearInterval(interval);
+          interval = null;
+          i = 0;
+          const link = document.getElementById("favicon");
+          if (link) link.href = frames[0];
+        };
+
+        if (!document.hidden) start();
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            stop();
+          } else {
+            start();
+          }
+        });
       })();
     </script>
   </head>
