@@ -225,15 +225,14 @@ export default function Model({
     };
 
     const onClick = (e: MouseEvent) => {
-
-      const audio = new Audio('/SoundEffects/mouse-click.mp3');
-      audio.volume = 0.03;
-      audio.play().catch((err) => console.warn('Audio play failed', err));
-
       setPointerFromEvent(e);
       raycaster.setFromCamera(pointer, camera);
       const intersects = raycaster.intersectObjects(stickerObjs, true);
       if (intersects.length > 0) {
+        const audio = new Audio('/SoundEffects/mouse-click.mp3');
+        audio.volume = 0.03;
+        audio.play().catch((err) => console.warn('Audio play failed', err));
+
         const hitName = findStickerRootName(intersects[0].object);
         const url = hitName ? urlMap[hitName] : undefined;
         if (url) {
@@ -242,10 +241,15 @@ export default function Model({
       }
     };
 
-    const onContextMenu = () => {
-      const audio = new Audio('/SoundEffects/mouse-click.mp3');
-      audio.volume = 0.03;
-      audio.play().catch((err) => console.warn('Audio play failed', err));
+    const onContextMenu = (e: MouseEvent) => {
+      setPointerFromEvent(e);
+      raycaster.setFromCamera(pointer, camera);
+      const intersects = raycaster.intersectObjects(stickerObjs, true);
+      if (intersects.length > 0) {
+        const audio = new Audio('/SoundEffects/mouse-click.mp3');
+        audio.volume = 0.03;
+        audio.play().catch((err) => console.warn('Audio play failed', err));
+      }
     };
 
     canvas.addEventListener('pointermove', onPointerMove);
