@@ -271,7 +271,24 @@ export default function Model({
       }
     };
   }, [model, gl, camera]);
-  // --- end hover/click behavior ---
+
+
+  // Play sound when clicking inside the iframe
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      // Check if message is 'click' from the iframe
+      if (e.data === 'click' && e.source === iframeRef.current?.contentWindow) {
+        const audio = new Audio('/SoundEffects/mouse-click.mp3');
+        audio.volume = 0.03;
+        audio.play().catch((err) => console.warn('Audio play failed', err));
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   return (
     <>
